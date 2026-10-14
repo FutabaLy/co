@@ -4,6 +4,11 @@
 
 **[打开网站](https://futabaly.github.io/co/)** · **[进入数字编码实验室](https://futabaly.github.io/co/digital-encoding/)**
 
+## 关联项目
+
+- [计算机网络 CN / network](https://futabaly.github.io/network/)：带宽、发送时延、传播时延、滑动窗口等教学可视化。[源码](https://github.com/FutabaLy/network)。
+- [数据结构 ds](https://futabaly.github.io/ds/)：排序、AVL 等可视化实验。
+
 ## 项目索引
 
 | 项目 | 内容 | 在线体验 |
