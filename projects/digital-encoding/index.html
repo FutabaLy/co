@@ -1,0 +1,1245 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>408计网数字编码交互式可视化实验室</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+      background-color: #f8fafc;
+      color: #0f172a;
+    }
+    .mono {
+      font-family: 'JetBrains Mono', monospace;
+    }
+    /* Custom scrollbar for smooth horizontally scrollable canvas on small screens */
+    .canvas-scroll::-webkit-scrollbar {
+      height: 8px;
+    }
+    .canvas-scroll::-webkit-scrollbar-track {
+      background: #f1f5f9;
+      border-radius: 4px;
+    }
+    .canvas-scroll::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 4px;
+    }
+    .canvas-scroll::-webkit-scrollbar-thumb:hover {
+      background: #94a3b8;
+    }
+    .bit-btn {
+      transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .bit-btn:active {
+      transform: scale(0.92);
+    }
+    @keyframes pulse-ring {
+      0% { transform: scale(0.85); opacity: 0.8; }
+      50% { transform: scale(1.15); opacity: 0.4; }
+      100% { transform: scale(0.85); opacity: 0.8; }
+    }
+    .pulse-circle {
+      animation: pulse-ring 2s infinite ease-in-out;
+      transform-origin: center;
+      transform-box: fill-box;
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+  <!-- Top Navigation / Header -->
+  <header class="bg-slate-900 text-white shadow-lg sticky top-0 z-30 border-b border-slate-800">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5 flex flex-wrap justify-between items-center gap-4">
+      <div class="flex items-center space-x-3">
+        <div class="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center shadow-inner shadow-indigo-400/30">
+          <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+          </svg>
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <h1 class="text-lg sm:text-xl font-bold tracking-tight">数字编码可视化实验室</h1>
+            <span class="bg-amber-500/20 text-amber-300 border border-amber-500/30 text-xs font-semibold px-2 py-0.5 rounded-full">408考研核心突破</span>
+          </div>
+          <p class="text-xs text-slate-400 hidden sm:block">物理层基带传输编码：NRZ / RZ / NRZI / 曼彻斯特 / 差分曼彻斯特 同步对比与推导</p>
+        </div>
+      </div>
+
+      <!-- Mode Switcher Tabs -->
+      <div class="flex bg-slate-800 p-1 rounded-xl border border-slate-700">
+        <button id="tab-explore" onclick="switchTab('explore')" class="px-4 py-1.5 rounded-lg text-sm font-medium transition-all bg-indigo-600 text-white shadow">
+          📊 交互波形与推导
+        </button>
+        <button id="tab-quiz" onclick="switchTab('quiz')" class="px-4 py-1.5 rounded-lg text-sm font-medium transition-all text-slate-300 hover:text-white">
+          🎯 考场真题闯关
+        </button>
+        <button id="tab-cheatsheet" onclick="switchTab('cheatsheet')" class="px-4 py-1.5 rounded-lg text-sm font-medium transition-all text-slate-300 hover:text-white">
+          💡 408秒杀口诀表
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content Container -->
+  <main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+
+    <!-- ==================== TAB 1: EXPLORE & VISUALIZE ==================== -->
+    <div id="section-explore" class="space-y-6">
+
+      <!-- Control Panel Card -->
+      <section class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+          
+          <!-- Left: Binary Sequence Input & Bit Flipper -->
+          <div class="lg:col-span-5 space-y-3">
+            <div class="flex items-center justify-between">
+              <label class="text-sm font-bold text-slate-800 flex items-center gap-1.5">
+                <span class="w-2 h-2 rounded-full bg-indigo-600"></span>
+                1. 发送二进制比特流 (点击单个Bit可直接翻转)
+              </label>
+              <div class="flex gap-1.5">
+                <button onclick="setPresetBits('10110010')" class="text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 px-2.5 py-1 rounded-md font-medium transition">经典例题</button>
+                <button onclick="randomizeBits()" class="text-xs bg-indigo-50 hover:bg-indigo-100 text-indigo-700 px-2.5 py-1 rounded-md font-medium transition flex items-center gap-1">
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                  随机生成
+                </button>
+              </div>
+            </div>
+
+            <!-- Text input + Bit Interactive Buttons -->
+            <div class="flex gap-2">
+              <input id="bit-input" type="text" maxlength="12" value="10110010" 
+                oninput="handleBitInput(this.value)"
+                placeholder="输入0和1 (最多12位)"
+                class="mono w-full px-3.5 py-2 rounded-xl border border-slate-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 outline-none text-base font-bold tracking-widest text-slate-800"
+              />
+            </div>
+
+            <!-- Interactive Bit Pills -->
+            <div class="pt-1">
+              <div class="text-xs text-slate-400 mb-1.5 flex justify-between">
+                <span>点击下方比特块可翻转 0/1，或选中某位查看推导：</span>
+                <span id="bit-len-badge" class="mono text-slate-500 font-medium">8 bits</span>
+              </div>
+              <div id="bit-pills-container" class="flex flex-wrap gap-1.5">
+                <!-- Populated by JS -->
+              </div>
+            </div>
+          </div>
+
+          <!-- Right: Exam Crucial Configurations -->
+          <div class="lg:col-span-7 grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2 lg:pt-0 lg:border-l lg:border-slate-200 lg:pl-6">
+            
+            <!-- Config A: Initial Reference Level -->
+            <div class="bg-slate-50 p-3.5 rounded-xl border border-slate-200/80 flex flex-col justify-between">
+              <div>
+                <div class="flex items-center justify-between mb-1">
+                  <span class="text-xs font-bold text-slate-700">① 初始参考电平 (t=0前)</span>
+                  <span class="text-[10px] bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded font-semibold">差分必看</span>
+                </div>
+                <p class="text-[11px] text-slate-500 mb-3 leading-relaxed">决定差分曼彻斯特与NRZI第1位边界对比的前置结束电平。</p>
+              </div>
+              <div class="grid grid-cols-2 gap-1.5 bg-slate-200/70 p-1 rounded-lg">
+                <button id="init-low" onclick="setConfig('initLevel', -1)" class="text-xs py-1.5 rounded-md font-semibold transition bg-white text-slate-900 shadow-sm">
+                  低电平 (Low)
+                </button>
+                <button id="init-high" onclick="setConfig('initLevel', 1)" class="text-xs py-1.5 rounded-md font-semibold transition text-slate-600 hover:text-slate-900">
+                  高电平 (High)
+                </button>
+              </div>
+            </div>
+
+            <!-- Config B: Differential Manchester Rule -->
+            <div class="bg-rose-50/50 p-3.5 rounded-xl border border-rose-200/80 flex flex-col justify-between">
+              <div>
+                <div class="flex items-center justify-between mb-1">
+                  <span class="text-xs font-bold text-rose-900">② 差分曼彻斯特规则</span>
+                  <span class="text-[10px] bg-rose-200 text-rose-900 px-1.5 py-0.5 rounded font-bold">易错核心</span>
+                </div>
+                <p class="text-[11px] text-rose-700/80 mb-2 leading-relaxed">不同教材/真题定义可能相反！考场务必先拿已知位核对规则：</p>
+              </div>
+              <div class="space-y-1.5">
+                <button id="diff-rule-standard" onclick="setConfig('diffRule', '0_change')" class="w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-semibold transition bg-rose-600 text-white shadow-sm flex items-center justify-between">
+                  <span>0变 1不变 <span class="text-[10px] opacity-85 font-normal">(谢希仁/802.5标准)</span></span>
+                  <span class="w-2 h-2 rounded-full bg-white"></span>
+                </button>
+                <button id="diff-rule-alt" onclick="setConfig('diffRule', '1_change')" class="w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-semibold transition bg-white text-slate-700 border border-slate-200 hover:bg-slate-100 flex items-center justify-between">
+                  <span>1变 0不变 <span class="text-[10px] opacity-75 font-normal">(部分讲义/变体题)</span></span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Config C: Manchester Polarity Rule -->
+            <div class="bg-indigo-50/40 p-3.5 rounded-xl border border-indigo-200/70 flex flex-col justify-between">
+              <div>
+                <div class="flex items-center justify-between mb-1">
+                  <span class="text-xs font-bold text-indigo-950">③ 曼彻斯特中心极性</span>
+                  <span class="text-[10px] bg-indigo-100 text-indigo-800 px-1.5 py-0.5 rounded font-semibold">2种约定</span>
+                </div>
+                <p class="text-[11px] text-slate-500 mb-2 leading-relaxed">中心必跳变，高→低代表1还是0有两种标准约定：</p>
+              </div>
+              <div class="space-y-1.5">
+                <button id="man-rule-1down" onclick="setConfig('manRule', '1_down')" class="w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-semibold transition bg-indigo-600 text-white shadow-sm flex items-center justify-between">
+                  <span>1降(高→低) 0升(低→高)</span>
+                  <span class="text-[10px] mono">↓1 ↑0</span>
+                </button>
+                <button id="man-rule-1up" onclick="setConfig('manRule', '1_up')" class="w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-semibold transition bg-white text-slate-700 border border-slate-200 hover:bg-slate-100 flex items-center justify-between">
+                  <span>1升(低→高) 0降(高→低)</span>
+                  <span class="text-[10px] mono">↑1 ↓0</span>
+                </button>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </section>
+
+      <!-- Step-by-Step Inspector Banner -->
+      <section class="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white rounded-2xl shadow-md p-4 sm:p-5 border border-indigo-500/30">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div class="flex items-start sm:items-center gap-3.5">
+            <div class="w-11 h-11 rounded-xl bg-indigo-500/20 border border-indigo-400/40 flex flex-col items-center justify-center shrink-0">
+              <span class="text-[10px] text-indigo-300 uppercase font-bold">当前选中</span>
+              <span id="step-index-badge" class="mono text-sm font-bold text-white">Bit #1</span>
+            </div>
+            <div class="space-y-1">
+              <div class="flex flex-wrap items-center gap-2">
+                <span class="text-xs font-semibold uppercase tracking-wider px-2 py-0.5 rounded bg-indigo-500/30 text-indigo-200 border border-indigo-400/30">分步推导器</span>
+                <h3 id="step-title" class="text-sm sm:text-base font-bold text-white">正在分析第 1 位数据：‘1’</h3>
+              </div>
+              <p id="step-explanation" class="text-xs sm:text-sm text-slate-300 leading-relaxed">
+                点击画布中的任意一列或右侧“上一步/下一步”按钮，即可逐位查看曼彻斯特与差分曼彻斯特的跳变推导全过程。
+              </p>
+            </div>
+          </div>
+
+          <!-- Step Navigation Buttons -->
+          <div class="flex items-center gap-2 shrink-0 self-end md:self-center">
+            <button onclick="stepBit(-1)" class="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-semibold transition flex items-center gap-1">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+              上一位
+            </button>
+            <button onclick="stepBit(1)" class="px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold shadow-sm transition flex items-center gap-1">
+              下一位
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+            </button>
+            <button onclick="toggleAutoPlay()" id="autoplay-btn" class="px-3 py-2 rounded-xl bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/30 text-xs font-semibold transition flex items-center gap-1">
+              <span>▶ 自动演示</span>
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Multi-Waveform Synchronized SVG Canvas -->
+      <section class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+        <!-- Legend Header -->
+        <div class="px-5 py-3.5 bg-slate-50 border-b border-slate-200 flex flex-wrap items-center justify-between gap-4">
+          <div class="flex items-center gap-2">
+            <span class="font-bold text-sm text-slate-800">同步对齐波形图</span>
+            <span class="text-xs text-slate-500">(点击任意比特列可定位推导，双击列可直接翻转 0/1)</span>
+          </div>
+          <!-- Visual Legend -->
+          <div class="flex flex-wrap items-center gap-4 text-xs">
+            <div class="flex items-center gap-1.5">
+              <span class="w-4 h-0.5 bg-slate-400 inline-block"></span>
+              <span class="text-slate-600">实线: 码元边界 (看差分跳变)</span>
+            </div>
+            <div class="flex items-center gap-1.5">
+              <span class="w-4 h-0.5 border-b-2 border-dashed border-slate-400 inline-block"></span>
+              <span class="text-slate-600">虚线: 码元中心 (同步时钟跳变)</span>
+            </div>
+            <div class="flex items-center gap-1.5">
+              <span class="w-3 h-3 rounded-full bg-rose-500 inline-block"></span>
+              <span class="text-rose-700 font-medium">红圈: 边界发生跳变(变)</span>
+            </div>
+            <div class="flex items-center gap-1.5">
+              <span class="w-3 h-3 rounded-full bg-emerald-500 inline-block"></span>
+              <span class="text-emerald-700 font-medium">绿圈: 边界保持不变(不变)</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Scrollable SVG Wrapper -->
+        <div class="canvas-scroll overflow-x-auto p-4 sm:p-6 bg-white">
+          <div id="svg-container" class="min-w-[820px] select-none">
+            <!-- Dynamic SVG rendered here -->
+          </div>
+        </div>
+
+        <!-- Optional Tracks Filter Footer -->
+        <div class="px-5 py-3 bg-slate-50 border-t border-slate-200 flex flex-wrap items-center justify-between gap-3 text-xs text-slate-600">
+          <div class="flex flex-wrap items-center gap-3">
+            <span class="font-semibold text-slate-700">显示对比信道：</span>
+            <label class="inline-flex items-center gap-1.5 cursor-pointer">
+              <input type="checkbox" checked onchange="toggleTrack('clock', this.checked)" class="rounded text-indigo-600 focus:ring-indigo-500">
+              <span>时钟信号 (Clock)</span>
+            </label>
+            <label class="inline-flex items-center gap-1.5 cursor-pointer">
+              <input type="checkbox" checked onchange="toggleTrack('nrz', this.checked)" class="rounded text-indigo-600 focus:ring-indigo-500">
+              <span>不归零制 (NRZ)</span>
+            </label>
+            <label class="inline-flex items-center gap-1.5 cursor-pointer">
+              <input type="checkbox" checked onchange="toggleTrack('rz', this.checked)" class="rounded text-indigo-600 focus:ring-indigo-500">
+              <span>归零制 (RZ)</span>
+            </label>
+            <label class="inline-flex items-center gap-1.5 cursor-pointer">
+              <input type="checkbox" checked onchange="toggleTrack('nrzi', this.checked)" class="rounded text-indigo-600 focus:ring-indigo-500">
+              <span>反向不归零 (NRZI)</span>
+            </label>
+            <label class="inline-flex items-center gap-1.5 cursor-pointer font-semibold text-indigo-700">
+              <input type="checkbox" checked disabled class="rounded text-indigo-600">
+              <span>曼彻斯特 & 差分曼彻斯特 (核心必看)</span>
+            </label>
+          </div>
+          <div class="text-slate-400">
+            💡 提示：把鼠标悬停或点击对应列，可高亮比对同一时刻6种编码的电平状态
+          </div>
+        </div>
+      </section>
+
+      <!-- Exam Alert Card: Why "0变1不变" vs "1变0不变"? -->
+      <section class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div class="bg-amber-50/70 border border-amber-200 rounded-2xl p-5 space-y-2.5">
+          <div class="flex items-center gap-2 text-amber-900 font-bold text-base">
+            <svg class="w-5 h-5 text-amber-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+            <span>考场避坑指南：差分曼彻斯特到底是“0变1不变”还是“1变0不变”？</span>
+          </div>
+          <p class="text-xs sm:text-sm text-amber-900/80 leading-relaxed">
+            在 IEEE 802.5（令牌环网）标准及谢希仁《计算机网络》教材中，标准定义为<strong>“0有跳变（边界变），1无跳变（边界不变）”</strong>。但在部分辅导书或早期题目中，也会考查自定义的<strong>“1变0不变”</strong>。
+          </p>
+          <div class="bg-white/80 rounded-xl p-3 border border-amber-200/80 text-xs text-slate-700 space-y-1">
+            <p class="font-bold text-slate-900">📌 408 考场黄金解题两步法：</p>
+            <p>1. <strong>题干给了示例波形/已知位</strong>：直接核对前两位边界！看连续两个相同电平或跳变对应的是 0 还是 1，反推题目采用的规则。</p>
+            <p>2. <strong>题干完全没给提示</strong>：408 统考真题优先按谢希仁教材标准（<strong>“0变1不变”</strong>）作答，并在选项中通过排除法验证！</p>
+          </div>
+        </div>
+
+        <div class="bg-indigo-50/70 border border-indigo-200 rounded-2xl p-5 space-y-2.5">
+          <div class="flex items-center gap-2 text-indigo-950 font-bold text-base">
+            <svg class="w-5 h-5 text-indigo-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>
+            <span>秒懂技巧：“看自己” vs “看邻居” (波形反推二进制)</span>
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+            <div class="bg-white rounded-xl p-3.5 border border-indigo-100 shadow-sm">
+              <div class="text-xs font-bold text-indigo-700 mb-1">曼彻斯特：只看码元中心</div>
+              <p class="text-xs text-slate-600 leading-relaxed">
+                不要管边界怎么连！直接拿笔点出每个码元的<strong>虚线（中心点）</strong>：所有箭头方向相同的，必然是同一个数字（全1或全0）。
+              </p>
+            </div>
+            <div class="bg-white rounded-xl p-3.5 border border-rose-100 shadow-sm">
+              <div class="text-xs font-bold text-rose-700 mb-1">差分曼彻斯特：只看左边界</div>
+              <p class="text-xs text-slate-600 leading-relaxed">
+                中心跳变只是时钟！眼睛死盯<strong>实线（左边界）</strong>：有竖线（发生跳变）记为“变”，平滑穿过（无竖线）记为“不变”。
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </div>
+
+    <!-- ==================== TAB 2: INTERACTIVE QUIZ MODE ==================== -->
+    <div id="section-quiz" class="hidden space-y-6">
+      <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+        <div class="flex flex-wrap items-center justify-between gap-4 pb-6 border-b border-slate-200">
+          <div>
+            <span class="text-xs font-bold uppercase tracking-wider text-indigo-600 bg-indigo-50 px-2.5 py-1 rounded-full">408 实战读图训练</span>
+            <h2 class="text-xl font-bold text-slate-900 mt-2">看波形识编码 · 互动刷题闯关</h2>
+            <p class="text-sm text-slate-500">观察下方随机生成的未知波形，点击每个码元下方的按钮填写正确的 0 或 1。</p>
+          </div>
+          <div class="flex items-center gap-4">
+            <div class="text-right">
+              <div class="text-xs text-slate-400">当前连胜 / 总正确</div>
+              <div id="quiz-score" class="mono text-lg font-bold text-emerald-600">0 / 0</div>
+            </div>
+            <button onclick="generateQuizQuestion()" class="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold rounded-xl shadow-sm transition flex items-center gap-1.5">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+              换一题
+            </button>
+          </div>
+        </div>
+
+        <!-- Question Prompt Banner -->
+        <div class="my-5 p-4 rounded-xl bg-slate-900 text-white flex flex-wrap items-center justify-between gap-4">
+          <div class="space-y-1">
+            <div class="flex items-center gap-2">
+              <span id="quiz-type-badge" class="px-2.5 py-0.5 text-xs font-bold rounded bg-rose-500 text-white">差分曼彻斯特编码</span>
+              <span id="quiz-rule-badge" class="text-xs text-amber-300 font-mono">本题约定：边界 0变1不变 | 初始参考电平：低电平</span>
+            </div>
+            <p id="quiz-prompt-text" class="text-sm text-slate-300">请根据下方波形图，推导出对应的 8 位二进制数据序列：</p>
+          </div>
+          <div class="flex items-center gap-2">
+            <button onclick="toggleQuizHint()" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-amber-300 border border-slate-700 text-xs font-medium transition">
+              💡 显示/隐藏辅助标记
+            </button>
+          </div>
+        </div>
+
+        <!-- Quiz Waveform SVG Container -->
+        <div class="canvas-scroll overflow-x-auto py-4 bg-slate-50 rounded-xl border border-slate-200 px-4">
+          <div id="quiz-svg-container" class="min-w-[720px]"></div>
+        </div>
+
+        <!-- User Answer Interactive Slots -->
+        <div class="mt-6">
+          <div class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">点击下方按钮切换您的答案 (0 或 1)：</div>
+          <div id="quiz-answer-slots" class="grid grid-cols-8 gap-2 sm:gap-4 max-w-3xl mx-auto">
+            <!-- Populated by JS -->
+          </div>
+        </div>
+
+        <!-- Submit & Explanation Feedback -->
+        <div class="mt-6 pt-5 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div id="quiz-feedback" class="text-sm font-medium text-slate-600">
+            完成全部 8 位选择后，点击右侧“提交批改”查看逐位解析。
+          </div>
+          <div class="flex gap-3 shrink-0">
+            <button onclick="checkQuizAnswer()" class="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-sm rounded-xl shadow transition">
+              ✓ 提交批改
+            </button>
+          </div>
+        </div>
+
+        <!-- Detailed Quiz Breakdown Box -->
+        <div id="quiz-explanation-box" class="hidden mt-4 p-4 rounded-xl bg-slate-100 border border-slate-200 text-xs sm:text-sm space-y-2">
+          <!-- Populated on submit -->
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== TAB 3: 408 CHEATSHEET & COMPARISON ==================== -->
+    <div id="section-cheatsheet" class="hidden space-y-6">
+      
+      <!-- Mnemonic Cards -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-2">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-bold px-2.5 py-1 rounded-md bg-indigo-100 text-indigo-800">核心口诀 1</span>
+            <span class="mono text-xs text-slate-400">Manchester</span>
+          </div>
+          <h3 class="text-base font-bold text-slate-900">曼彻斯特：看自己，中心跳</h3>
+          <p class="text-xs text-slate-600 leading-relaxed">
+            每个码元正中间必有一次跳变（既作时钟同步，又代表数据）。<strong>“1降0升”或“1升0降”</strong>，只跟当前位自己是0还是1有关，与前一位毫无关系。
+          </p>
+        </div>
+
+        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-2">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-bold px-2.5 py-1 rounded-md bg-rose-100 text-rose-800">核心口诀 2</span>
+            <span class="mono text-xs text-slate-400">Diff-Manchester</span>
+          </div>
+          <h3 class="text-base font-bold text-slate-900">差分曼彻斯特：看邻居，边界判</h3>
+          <p class="text-xs text-slate-600 leading-relaxed">
+            码元中心跳变仅作时钟同步！数据藏在<strong>码元起点（左边界）</strong>：跟前一位结束电平相比，标准教材<strong>“0变1不变”</strong>（变体题“1变0不变”）。抗正负极接反干扰更强！
+          </p>
+        </div>
+
+        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-2">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-bold px-2.5 py-1 rounded-md bg-emerald-100 text-emerald-800">核心口诀 3</span>
+            <span class="mono text-xs text-slate-400">NRZI (USB使用)</span>
+          </div>
+          <h3 class="text-base font-bold text-slate-900">反向不归零 NRZI：遇0翻转遇1不变</h3>
+          <p class="text-xs text-slate-600 leading-relaxed">
+            码元中间<strong>不跳变</strong>（省带宽）！只在码元边界判断：遇到<strong>“0”电平翻转</strong>，遇到<strong>“1”保持不变</strong>。连续全0可同步，连续全1需配合位填充（如HDLC/USB）。
+          </p>
+        </div>
+      </div>
+
+      <!-- Comprehensive 408 Comparison Table -->
+      <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+        <div class="px-6 py-4 bg-slate-900 text-white flex items-center justify-between">
+          <div>
+            <h3 class="text-base font-bold">408 计算机网络 · 数字编码全方位对比表</h3>
+            <p class="text-xs text-slate-400">高频考点：自同步能力、波特率（调制速率）与数据传输率关系、编码效率</p>
+          </div>
+          <span class="text-xs bg-indigo-600 px-3 py-1 rounded-full font-semibold">选择题必背</span>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full text-left border-collapse text-xs sm:text-sm">
+            <thead>
+              <tr class="bg-slate-100 text-slate-700 border-b border-slate-200">
+                <th class="py-3.5 px-4 font-bold">编码名称</th>
+                <th class="py-3.5 px-4 font-bold">跳变编码规则</th>
+                <th class="py-3.5 px-4 font-bold">自同步能力 (提取时钟)</th>
+                <th class="py-3.5 px-4 font-bold">波特率 vs 比特率</th>
+                <th class="py-3.5 px-4 font-bold">编码效率</th>
+                <th class="py-3.5 px-4 font-bold">典型应用场景</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-200 text-slate-700">
+              <tr class="hover:bg-slate-50">
+                <td class="py-3 px-4 font-bold text-slate-900">不归零制 (NRZ)</td>
+                <td class="py-3 px-4">高电平代表1，低电平代表0（全程不跳变）</td>
+                <td class="py-3 px-4"><span class="px-2 py-0.5 rounded bg-rose-100 text-rose-700 font-semibold">无</span> (连续0或1完全无跳变)</td>
+                <td class="py-3 px-4 mono">Baud = Bit/s</td>
+                <td class="py-3 px-4 font-semibold text-emerald-600">100%</td>
+                <td class="py-3 px-4 text-slate-500">计算机内部短距离高速总线</td>
+              </tr>
+              <tr class="hover:bg-slate-50">
+                <td class="py-3 px-4 font-bold text-slate-900">归零制 (RZ)</td>
+                <td class="py-3 px-4">每个码元中间均归回零电平 (占空比50%)</td>
+                <td class="py-3 px-4"><span class="px-2 py-0.5 rounded bg-amber-100 text-amber-800 font-semibold">部分</span> (单极性连0仍无跳变)</td>
+                <td class="py-3 px-4 mono">Baud = 2 × Bit/s</td>
+                <td class="py-3 px-4 text-amber-600">50% (三级电平)</td>
+                <td class="py-3 px-4 text-slate-500">早期磁记录与光通信</td>
+              </tr>
+              <tr class="hover:bg-slate-50">
+                <td class="py-3 px-4 font-bold text-slate-900">反向不归零 (NRZI)</td>
+                <td class="py-3 px-4">边界处：遇 <strong>0</strong> 翻转，遇 <strong>1</strong> 保持不变</td>
+                <td class="py-3 px-4"><span class="px-2 py-0.5 rounded bg-amber-100 text-amber-800 font-semibold">连0可同步</span> (连1需0比特插入)</td>
+                <td class="py-3 px-4 mono">Baud = Bit/s</td>
+                <td class="py-3 px-4 font-semibold text-emerald-600">≈ 100%</td>
+                <td class="py-3 px-4 text-slate-500">USB 2.0、光纤FDDI</td>
+              </tr>
+              <tr class="bg-indigo-50/40 hover:bg-indigo-50/80">
+                <td class="py-3 px-4 font-bold text-indigo-900">曼彻斯特 (Manchester)</td>
+                <td class="py-3 px-4"><strong>中心必跳变</strong>：1降0升（或1升0降）</td>
+                <td class="py-3 px-4"><span class="px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 font-bold">极强 (自带时钟)</span></td>
+                <td class="py-3 px-4 mono font-bold text-indigo-700">Baud = 2 × Bit/s</td>
+                <td class="py-3 px-4 font-bold text-rose-600">50%</td>
+                <td class="py-3 px-4 font-medium text-indigo-900">10BASE-T 传统以太网 (IEEE 802.3)</td>
+              </tr>
+              <tr class="bg-rose-50/40 hover:bg-rose-50/80">
+                <td class="py-3 px-4 font-bold text-rose-900">差分曼彻斯特</td>
+                <td class="py-3 px-4"><strong>中心必跳变</strong>；边界处：<strong>0变1不变</strong> (或1变0不变)</td>
+                <td class="py-3 px-4"><span class="px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 font-bold">极强 + 抗极性反转</span></td>
+                <td class="py-3 px-4 mono font-bold text-rose-700">Baud = 2 × Bit/s</td>
+                <td class="py-3 px-4 font-bold text-rose-600">50%</td>
+                <td class="py-3 px-4 font-medium text-rose-900">IEEE 802.5 令牌环局域网</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="p-4 bg-slate-50 border-t border-slate-200 text-xs text-slate-600 flex flex-wrap justify-between gap-2">
+          <span>⚡ <strong>常考计算公式</strong>：10Mbps 传统以太网采用曼彻斯特编码，其<strong>数据传输率 = 10 Mb/s</strong>，而<strong>信道上的调制速率（波特率）= 20 MBaud</strong>（因为每比特包含2个电平脉冲）。</span>
+        </div>
+      </div>
+
+    </div>
+
+  </main>
+
+  <!-- Footer -->
+  <footer class="bg-white border-t border-slate-200 mt-8 py-4">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-400 gap-2">
+      <span>计算机网络 408 考研物理层编码交互式实验室</span>
+      <span>支持实时规则切换 · 边界跳变高亮 · 读图刷题训练</span>
+    </div>
+  </footer>
+
+  <!-- ==================== JAVASCRIPT LOGIC ==================== -->
+  <script>
+    // Application State
+    const state = {
+      bits: [1, 0, 1, 1, 0, 0, 1, 0],
+      selectedBitIndex: 0,
+      initLevel: -1,         // -1 for Low, 1 for High
+      diffRule: '0_change',  // '0_change' (0变1不变 - 谢希仁/802.5) or '1_change' (1变0不变)
+      manRule: '1_down',     // '1_down' (1高到低, 0低到高) or '1_up' (1低到高, 0高到低)
+      tracks: {
+        clock: true,
+        nrz: true,
+        rz: true,
+        manchester: true,
+        diffManchester: true,
+        nrzi: true
+      },
+      autoPlayTimer: null,
+      // Quiz State
+      quiz: {
+        bits: [1, 0, 1, 1, 0, 1, 0, 0],
+        userBits: [0, 0, 0, 0, 0, 0, 0, 0],
+        encodingType: 'diff', // 'diff' or 'man'
+        diffRule: '0_change',
+        manRule: '1_down',
+        initLevel: -1,
+        showHint: false,
+        streak: 0,
+        totalCorrect: 0
+      }
+    };
+
+    // Switch top navigation tabs
+    function switchTab(tabName) {
+      ['explore', 'quiz', 'cheatsheet'].forEach(t => {
+        const sec = document.getElementById(`section-${t}`);
+        const btn = document.getElementById(`tab-${t}`);
+        if (t === tabName) {
+          sec.classList.remove('hidden');
+          btn.className = 'px-4 py-1.5 rounded-lg text-sm font-medium transition-all bg-indigo-600 text-white shadow';
+        } else {
+          sec.classList.add('hidden');
+          btn.className = 'px-4 py-1.5 rounded-lg text-sm font-medium transition-all text-slate-300 hover:text-white';
+        }
+      });
+      if (tabName === 'quiz') {
+        renderQuizSVG();
+        renderQuizSlots();
+      }
+    }
+
+    // Handle Binary Input Box
+    function handleBitInput(val) {
+      const cleaned = val.replace(/[^01]/g, '');
+      document.getElementById('bit-input').value = cleaned;
+      if (cleaned.length > 0) {
+        state.bits = cleaned.split('').map(Number);
+        if (state.selectedBitIndex >= state.bits.length) {
+          state.selectedBitIndex = state.bits.length - 1;
+        }
+        updateAll();
+      }
+    }
+
+    function setPresetBits(str) {
+      document.getElementById('bit-input').value = str;
+      handleBitInput(str);
+    }
+
+    function randomizeBits() {
+      const len = 8;
+      let str = '';
+      for (let i = 0; i < len; i++) {
+        str += Math.random() > 0.5 ? '1' : '0';
+      }
+      setPresetBits(str);
+    }
+
+    function flipBit(idx, event) {
+      if (event) event.stopPropagation();
+      state.bits[idx] = state.bits[idx] === 1 ? 0 : 1;
+      state.selectedBitIndex = idx;
+      document.getElementById('bit-input').value = state.bits.join('');
+      updateAll();
+    }
+
+    function selectBit(idx) {
+      state.selectedBitIndex = idx;
+      updateAll();
+    }
+
+    function stepBit(delta) {
+      const len = state.bits.length;
+      state.selectedBitIndex = (state.selectedBitIndex + delta + len) % len;
+      updateAll();
+    }
+
+    function toggleAutoPlay() {
+      const btn = document.getElementById('autoplay-btn');
+      if (state.autoPlayTimer) {
+        clearInterval(state.autoPlayTimer);
+        state.autoPlayTimer = null;
+        btn.innerHTML = '<span>▶ 自动演示</span>';
+        btn.className = 'px-3 py-2 rounded-xl bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/30 text-xs font-semibold transition flex items-center gap-1';
+      } else {
+        btn.innerHTML = '<span>⏸ 停止演示</span>';
+        btn.className = 'px-3 py-2 rounded-xl bg-rose-600/30 hover:bg-rose-600/40 text-rose-200 border border-rose-500/40 text-xs font-semibold transition flex items-center gap-1';
+        state.autoPlayTimer = setInterval(() => {
+          stepBit(1);
+        }, 1800);
+      }
+    }
+
+    // Set Configuration Options
+    function setConfig(key, val) {
+      state[key] = val;
+
+      // Update UI buttons active states
+      if (key === 'initLevel') {
+        const lowBtn = document.getElementById('init-low');
+        const highBtn = document.getElementById('init-high');
+        if (val === -1) {
+          lowBtn.className = 'text-xs py-1.5 rounded-md font-semibold transition bg-white text-slate-900 shadow-sm';
+          highBtn.className = 'text-xs py-1.5 rounded-md font-semibold transition text-slate-600 hover:text-slate-900';
+        } else {
+          highBtn.className = 'text-xs py-1.5 rounded-md font-semibold transition bg-white text-slate-900 shadow-sm';
+          lowBtn.className = 'text-xs py-1.5 rounded-md font-semibold transition text-slate-600 hover:text-slate-900';
+        }
+      } else if (key === 'diffRule') {
+        const stdBtn = document.getElementById('diff-rule-standard');
+        const altBtn = document.getElementById('diff-rule-alt');
+        if (val === '0_change') {
+          stdBtn.className = 'w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-semibold transition bg-rose-600 text-white shadow-sm flex items-center justify-between';
+          altBtn.className = 'w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-semibold transition bg-white text-slate-700 border border-slate-200 hover:bg-slate-100 flex items-center justify-between';
+        } else {
+          altBtn.className = 'w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-semibold transition bg-rose-600 text-white shadow-sm flex items-center justify-between';
+          stdBtn.className = 'w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-semibold transition bg-white text-slate-700 border border-slate-200 hover:bg-slate-100 flex items-center justify-between';
+        }
+      } else if (key === 'manRule') {
+        const downBtn = document.getElementById('man-rule-1down');
+        const upBtn = document.getElementById('man-rule-1up');
+        if (val === '1_down') {
+          downBtn.className = 'w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-semibold transition bg-indigo-600 text-white shadow-sm flex items-center justify-between';
+          upBtn.className = 'w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-semibold transition bg-white text-slate-700 border border-slate-200 hover:bg-slate-100 flex items-center justify-between';
+        } else {
+          upBtn.className = 'w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-semibold transition bg-indigo-600 text-white shadow-sm flex items-center justify-between';
+          downBtn.className = 'w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-semibold transition bg-white text-slate-700 border border-slate-200 hover:bg-slate-100 flex items-center justify-between';
+        }
+      }
+
+      updateAll();
+    }
+
+    function toggleTrack(trackKey, checked) {
+      state.tracks[trackKey] = checked;
+      renderWaveformsSVG();
+    }
+
+    // Compute encoded signal states for all tracks
+    function computeWaveforms(bits, initLevel, diffRule, manRule) {
+      const results = {
+        clock: [],
+        nrz: [],
+        rz: [],
+        manchester: [],
+        diffManchester: [],
+        nrzi: []
+      };
+
+      let prevDiffEnd = initLevel; // -1 or 1
+      let prevNrziEnd = initLevel; // -1 or 1
+
+      bits.forEach((b, i) => {
+        // 1. Clock: first half High (1), second half Low (-1)
+        results.clock.push({ first: 1, second: -1 });
+
+        // 2. NRZ: 1 -> High (1), 0 -> Low (-1)
+        const nrzVal = b === 1 ? 1 : -1;
+        results.nrz.push({ first: nrzVal, second: nrzVal });
+
+        // 3. RZ (Bipolar Return-to-Zero): 1 -> High then 0, 0 -> Low then 0
+        results.rz.push({ first: b === 1 ? 1 : -1, second: 0 });
+
+        // 4. Manchester:
+        // '1_down': 1 is High->Low (1, -1), 0 is Low->High (-1, 1)
+        // '1_up':   1 is Low->High (-1, 1), 0 is High->Low (1, -1)
+        let manFirst, manSecond;
+        if (manRule === '1_down') {
+          manFirst = b === 1 ? 1 : -1;
+          manSecond = b === 1 ? -1 : 1;
+        } else {
+          manFirst = b === 1 ? -1 : 1;
+          manSecond = b === 1 ? 1 : -1;
+        }
+        results.manchester.push({ first: manFirst, second: manSecond });
+
+        // 5. Differential Manchester:
+        // Determine whether boundary transitions
+        const shouldChange = (diffRule === '0_change' && b === 0) || (diffRule === '1_change' && b === 1);
+        const diffFirst = shouldChange ? -prevDiffEnd : prevDiffEnd;
+        const diffSecond = -diffFirst; // Center ALWAYS transitions
+        results.diffManchester.push({
+          prevEnd: prevDiffEnd,
+          first: diffFirst,
+          second: diffSecond,
+          boundaryChanged: shouldChange
+        });
+        prevDiffEnd = diffSecond;
+
+        // 6. NRZI (0 transitions at boundary, 1 stays constant)
+        const nrziChanged = (b === 0);
+        const nrziLevel = nrziChanged ? -prevNrziEnd : prevNrziEnd;
+        results.nrzi.push({
+          prevEnd: prevNrziEnd,
+          first: nrziLevel,
+          second: nrziLevel,
+          boundaryChanged: nrziChanged
+        });
+        prevNrziEnd = nrziLevel;
+      });
+
+      return results;
+    }
+
+    // Render Bit Pills in Control Panel
+    function renderBitPills() {
+      const container = document.getElementById('bit-pills-container');
+      document.getElementById('bit-len-badge').textContent = `${state.bits.length} bits`;
+      
+      container.innerHTML = state.bits.map((b, idx) => {
+        const isSelected = idx === state.selectedBitIndex;
+        const baseClasses = isSelected
+          ? 'ring-2 ring-indigo-600 bg-indigo-600 text-white shadow-sm'
+          : (b === 1 ? 'bg-slate-800 text-white hover:bg-slate-700' : 'bg-slate-100 text-slate-800 border border-slate-300 hover:bg-slate-200');
+        return `
+          <div class="flex flex-col items-center">
+            <button onclick="flipBit(${idx}, event)" title="点击翻转第${idx+1}位 (0/1)"
+              class="bit-btn mono w-9 h-10 rounded-xl font-bold text-sm flex flex-col items-center justify-center ${baseClasses}">
+              <span>${b}</span>
+              <span class="text-[9px] opacity-65 font-normal">#${idx + 1}</span>
+            </button>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // Update Step-by-Step Explanation Banner
+    function renderStepExplanation(waveforms) {
+      const idx = state.selectedBitIndex;
+      const b = state.bits[idx];
+      const diffData = waveforms.diffManchester[idx];
+      const manData = waveforms.manchester[idx];
+
+      document.getElementById('step-index-badge').textContent = `Bit #${idx + 1}`;
+      
+      const ruleText = state.diffRule === '0_change' ? '【0变 1不变】' : '【1变 0不变】';
+      const prevLevelText = diffData.prevEnd === 1 ? '高电平 (High)' : '低电平 (Low)';
+      const startLevelText = diffData.first === 1 ? '高电平' : '低电平';
+      const endLevelText = diffData.second === 1 ? '高电平' : '低电平';
+      const changeBadge = diffData.boundaryChanged 
+        ? '<span class="px-1.5 py-0.5 rounded bg-rose-500/30 text-rose-200 border border-rose-400/40 font-bold">发生跳变 (变)</span>'
+        : '<span class="px-1.5 py-0.5 rounded bg-emerald-500/30 text-emerald-200 border border-emerald-400/40 font-bold">保持不变 (不变)</span>';
+
+      const manDir = manData.first === 1 ? '由高到低 (↓ 降)' : '由低到高 (↑ 升)';
+
+      document.getElementById('step-title').innerHTML = `
+        第 ${idx + 1} 位数据为 <span class="mono px-2 py-0.5 rounded bg-amber-400 text-slate-950 font-extrabold">${b}</span>
+      `;
+
+      document.getElementById('step-explanation').innerHTML = `
+        <span class="text-indigo-300 font-semibold">● 曼彻斯特(看自己)：</span>中心直接<strong>${manDir}</strong>跳变。<br class="sm:hidden"/>
+        <span class="text-rose-300 font-semibold sm:ml-3">● 差分曼彻斯特(看邻居)：</span>前一位结束在<strong>${prevLevelText}</strong>，按当前规则${ruleText}，左边界处 ${changeBadge}，故本位起点为<strong>${startLevelText}</strong>，并在码元中心必然跳变至<strong>${endLevelText}</strong>。
+      `;
+    }
+
+    // Render Main Multi-Track SVG
+    function renderWaveformsSVG() {
+      const waveforms = computeWaveforms(state.bits, state.initLevel, state.diffRule, state.manRule);
+      renderStepExplanation(waveforms);
+
+      const numBits = state.bits.length;
+      const leftMargin = 195;
+      const preInitWidth = 56;
+      const bitWidth = Math.max(76, Math.floor((880 - leftMargin - preInitWidth) / numBits));
+      const totalWidth = leftMargin + preInitWidth + numBits * bitWidth + 30;
+
+      const headerHeight = 56;
+      const trackHeight = 76;
+
+      // Active tracks list
+      const activeTrackDefs = [];
+      if (state.tracks.clock) {
+        activeTrackDefs.push({ key: 'clock', name: '时钟信号 (Clock)', sub: '周期性同步脉冲', color: '#64748b' });
+      }
+      if (state.tracks.nrz) {
+        activeTrackDefs.push({ key: 'nrz', name: '不归零制 (NRZ)', sub: '1高 0低 · 无自同步', color: '#0284c7' });
+      }
+      if (state.tracks.rz) {
+        activeTrackDefs.push({ key: 'rz', name: '双极性归零 (RZ)', sub: '前半码元传值，后半归零', color: '#0d9488' });
+      }
+      activeTrackDefs.push({
+        key: 'manchester',
+        name: '曼彻斯特编码',
+        sub: state.manRule === '1_down' ? '中心必跳：1降(↓) 0升(↑)' : '中心必跳：1升(↑) 0降(↓)',
+        color: '#4f46e5',
+        highlight: true
+      });
+      activeTrackDefs.push({
+        key: 'diffManchester',
+        name: '差分曼彻斯特',
+        sub: state.diffRule === '0_change' ? '边界：0变 1不变 | 中心必跳' : '边界：1变 0不变 | 中心必跳',
+        color: '#e11d48',
+        highlight: true
+      });
+      if (state.tracks.nrzi) {
+        activeTrackDefs.push({ key: 'nrzi', name: '反向不归零 (NRZI)', sub: '边界：遇0翻转 遇1不变', color: '#9333ea' });
+      }
+
+      const totalHeight = headerHeight + activeTrackDefs.length * trackHeight + 25;
+      const startX = leftMargin + preInitWidth;
+
+      let svg = `<svg width="100%" viewBox="0 0 ${totalWidth} ${totalHeight}" class="overflow-visible">`;
+
+      // Definitions for arrowheads
+      svg += `
+        <defs>
+          <marker id="arrow-indigo" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+            <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="#4f46e5"/>
+          </marker>
+          <marker id="arrow-rose" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+            <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="#e11d48"/>
+          </marker>
+        </defs>
+      `;
+
+      // 1. Background Column Highlights & Click Zones
+      // Initial reference column (t < 0)
+      svg += `
+        <rect x="${leftMargin}" y="10" width="${preInitWidth}" height="${totalHeight - 20}" rx="8" fill="#f8fafc" stroke="#e2e8f0" stroke-width="1"/>
+        <text x="${leftMargin + preInitWidth / 2}" y="28" text-anchor="middle" fill="#64748b" font-size="11" font-weight="600">初态</text>
+        <text x="${leftMargin + preInitWidth / 2}" y="44" text-anchor="middle" fill="${state.initLevel === 1 ? '#d97706' : '#475569'}" font-size="11" font-weight="700" class="mono">${state.initLevel === 1 ? 'High' : 'Low'}</text>
+      `;
+
+      // Bit Columns
+      state.bits.forEach((b, idx) => {
+        const colX = startX + idx * bitWidth;
+        const midX = colX + bitWidth / 2;
+        const isSelected = idx === state.selectedBitIndex;
+
+        // Highlight column for selected bit
+        if (isSelected) {
+          svg += `<rect x="${colX}" y="6" width="${bitWidth}" height="${totalHeight - 12}" rx="8" fill="#eef2ff" stroke="#818cf8" stroke-width="1.5"/>`;
+        } else if (idx % 2 === 1) {
+          svg += `<rect x="${colX}" y="10" width="${bitWidth}" height="${totalHeight - 20}" fill="#f8fafc" opacity="0.6"/>`;
+        }
+
+        // Bit header badge
+        const badgeFill = isSelected ? '#4f46e5' : (b === 1 ? '#1e293b' : '#f1f5f9');
+        const badgeText = isSelected ? '#ffffff' : (b === 1 ? '#ffffff' : '#334155');
+        svg += `
+          <g class="cursor-pointer" onclick="selectBit(${idx})" ondblclick="flipBit(${idx}, event)">
+            <rect x="${midX - 18}" y="12" width="36" height="32" rx="8" fill="${badgeFill}"/>
+            <text x="${midX}" y="33" text-anchor="middle" fill="${badgeText}" font-size="16" font-weight="700" class="mono">${b}</text>
+            <text x="${colX + 8}" y="24" fill="#94a3b8" font-size="10" class="mono">#${idx + 1}</text>
+          </g>
+        `;
+
+        // Center dashed line (Mid-bit synchronization line)
+        svg += `<line x1="${midX}" y1="${headerHeight}" x2="${midX}" y2="${totalHeight - 12}" stroke="#cbd5e1" stroke-width="1.2" stroke-dasharray="4,4"/>`;
+        // Boundary solid line
+        svg += `<line x1="${colX}" y1="12" x2="${colX}" y2="${totalHeight - 12}" stroke="#94a3b8" stroke-width="1.5"/>`;
+      });
+
+      // Final right boundary line
+      const endX = startX + numBits * bitWidth;
+      svg += `<line x1="${endX}" y1="12" x2="${endX}" y2="${totalHeight - 12}" stroke="#94a3b8" stroke-width="1.5"/>`;
+
+      // 2. Draw Each Waveform Track
+      activeTrackDefs.forEach((track, tIdx) => {
+        const trackTop = headerHeight + tIdx * trackHeight;
+        const centerY = trackTop + trackHeight / 2 + 4;
+        const amp = 21; // Y amplitude for High/Low
+
+        // Track Row Background separator
+        svg += `<line x1="10" y1="${trackTop}" x2="${totalWidth - 10}" y2="${trackTop}" stroke="#f1f5f9" stroke-width="1"/>`;
+
+        // Left Track Label
+        svg += `
+          <text x="14" y="${centerY - 4}" fill="${track.highlight ? track.color : '#1e293b'}" font-size="13" font-weight="700">${track.name}</text>
+          <text x="14" y="${centerY + 13}" fill="#64748b" font-size="11">${track.sub}</text>
+        `;
+
+        // High / 0 / Low subtle reference lines
+        svg += `<line x1="${leftMargin}" y1="${centerY}" x2="${endX}" y2="${centerY}" stroke="#e2e8f0" stroke-width="1"/>`;
+
+        const dataArr = waveforms[track.key];
+        const yOf = (level) => centerY - level * amp;
+
+        // Build polyline path
+        let pathD = '';
+        let prevY = null;
+
+        // Draw pre-initial level for Differential Manchester & NRZI
+        if (track.key === 'diffManchester' || track.key === 'nrzi') {
+          const initY = yOf(state.initLevel);
+          pathD += `M ${leftMargin + 8} ${initY} L ${startX} ${initY} `;
+          prevY = initY;
+        }
+
+        dataArr.forEach((seg, idx) => {
+          const colX = startX + idx * bitWidth;
+          const midX = colX + bitWidth / 2;
+          const nextX = colX + bitWidth;
+
+          const y1 = yOf(seg.first);
+          const y2 = yOf(seg.second);
+
+          if (idx === 0 && prevY === null) {
+            pathD += `M ${colX} ${y1} `;
+          } else if (prevY !== y1) {
+            // Vertical transition at bit boundary
+            pathD += `L ${colX} ${y1} `;
+          }
+
+          // First half horizontal
+          pathD += `L ${midX} ${y1} `;
+
+          // Center transition if needed
+          if (y1 !== y2) {
+            pathD += `L ${midX} ${y2} `;
+          }
+
+          // Second half horizontal
+          pathD += `L ${nextX} ${y2} `;
+          prevY = y2;
+        });
+
+        // Render main signal path
+        svg += `<path d="${pathD}" fill="none" stroke="${track.color}" stroke-width="${track.highlight ? 3.2 : 2.4}" stroke-linejoin="round" stroke-linecap="round"/>`;
+
+        // Render Track-Specific Educational Annotations
+        dataArr.forEach((seg, idx) => {
+          const colX = startX + idx * bitWidth;
+          const midX = colX + bitWidth / 2;
+          const y1 = yOf(seg.first);
+          const y2 = yOf(seg.second);
+          const isSelected = idx === state.selectedBitIndex;
+
+          // Manchester: Draw directional arrow at center transition
+          if (track.key === 'manchester') {
+            const arrowYStart = seg.first === 1 ? centerY - amp + 3 : centerY + amp - 3;
+            const arrowYEnd = seg.second === 1 ? centerY - amp + 6 : centerY + amp - 6;
+            svg += `<line x1="${midX}" y1="${arrowYStart}" x2="${midX}" y2="${arrowYEnd}" stroke="#4f46e5" stroke-width="2.5" marker-end="url(#arrow-indigo)"/>`;
+            const labelSymbol = seg.first === 1 ? '↓' : '↑';
+            svg += `
+              <rect x="${midX + 5}" y="${centerY - 9}" width="16" height="16" rx="4" fill="#eef2ff"/>
+              <text x="${midX + 13}" y="${centerY + 3}" text-anchor="middle" fill="#4f46e5" font-size="11" font-weight="700">${labelSymbol}</text>
+            `;
+          }
+
+          // Differential Manchester: Highlight Boundary Transition (Red = Changed, Green = Unchanged)
+          if (track.key === 'diffManchester') {
+            const changed = seg.boundaryChanged;
+            const badgeColor = changed ? '#e11d48' : '#10b981';
+            const badgeBg = changed ? '#ffe4e6' : '#d1fae5';
+            const badgeText = changed ? '变' : '不变';
+            const circleY = changed ? centerY : y1;
+
+            if (isSelected) {
+              svg += `<circle cx="${colX}" cy="${circleY}" r="11" fill="${badgeColor}" opacity="0.25" class="pulse-circle"/>`;
+            }
+            svg += `
+              <circle cx="${colX}" cy="${circleY}" r="5.5" fill="${badgeColor}" stroke="#ffffff" stroke-width="1.5"/>
+              <rect x="${colX + 4}" y="${centerY - amp - 15}" width="${changed ? 20 : 28}" height="15" rx="4" fill="${badgeBg}" stroke="${badgeColor}" stroke-width="0.8"/>
+              <text x="${colX + (changed ? 14 : 18)}" y="${centerY - amp - 4.5}" text-anchor="middle" fill="${badgeColor}" font-size="10" font-weight="700">${badgeText}</text>
+            `;
+
+            // Also draw small clock transition arrow at center
+            const arrowYStart = seg.first === 1 ? centerY - amp + 4 : centerY + amp - 4;
+            const arrowYEnd = seg.second === 1 ? centerY - amp + 7 : centerY + amp - 7;
+            svg += `<line x1="${midX}" y1="${arrowYStart}" x2="${midX}" y2="${arrowYEnd}" stroke="#e11d48" stroke-width="2" marker-end="url(#arrow-rose)"/>`;
+          }
+
+          // NRZI: Highlight Boundary flip on '0'
+          if (track.key === 'nrzi' && seg.boundaryChanged) {
+            svg += `<circle cx="${colX}" cy="${centerY}" r="4.5" fill="#9333ea" stroke="#ffffff" stroke-width="1.5"/>`;
+          }
+        });
+      });
+
+      // Invisible interactive overlay for clicking columns directly on canvas
+      state.bits.forEach((b, idx) => {
+        const colX = startX + idx * bitWidth;
+        svg += `
+          <rect x="${colX}" y="${headerHeight}" width="${bitWidth}" height="${totalHeight - headerHeight}" 
+            fill="transparent" class="cursor-pointer hover:fill-indigo-500/5 transition"
+            onclick="selectBit(${idx})" ondblclick="flipBit(${idx}, event)">
+            <title>点击查看第 ${idx + 1} 位推导，双击翻转 0/1</title>
+          </rect>
+        `;
+      });
+
+      svg += `</svg>`;
+      document.getElementById('svg-container').innerHTML = svg;
+    }
+
+    // ==================== QUIZ LOGIC ====================
+    function generateQuizQuestion() {
+      const q = state.quiz;
+      q.bits = Array.from({ length: 8 }, () => (Math.random() > 0.5 ? 1 : 0));
+      q.userBits = Array(8).fill(0);
+      q.encodingType = Math.random() > 0.35 ? 'diff' : 'man';
+      q.diffRule = Math.random() > 0.3 ? '0_change' : '1_change';
+      q.manRule = Math.random() > 0.4 ? '1_down' : '1_up';
+      q.initLevel = Math.random() > 0.5 ? 1 : -1;
+      q.showHint = false;
+
+      document.getElementById('quiz-explanation-box').classList.add('hidden');
+      document.getElementById('quiz-feedback').innerHTML = '请观察波形并点击下方按钮拼出 8 位二进制序列，完成后点击“提交批改”。';
+
+      // Update badges
+      const typeBadge = document.getElementById('quiz-type-badge');
+      const ruleBadge = document.getElementById('quiz-rule-badge');
+      if (q.encodingType === 'diff') {
+        typeBadge.textContent = '差分曼彻斯特编码';
+        typeBadge.className = 'px-2.5 py-0.5 text-xs font-bold rounded bg-rose-500 text-white';
+        const rText = q.diffRule === '0_change' ? '边界 0变 1不变 (谢希仁标准)' : '边界 1变 0不变 (变体约定)';
+        const initText = q.initLevel === 1 ? '高电平 (High)' : '低电平 (Low)';
+        ruleBadge.textContent = `本题约定：${rText} | 初始参考电平：${initText}`;
+      } else {
+        typeBadge.textContent = '曼彻斯特编码';
+        typeBadge.className = 'px-2.5 py-0.5 text-xs font-bold rounded bg-indigo-500 text-white';
+        const rText = q.manRule === '1_down' ? '中心 1降(高→低) 0升(低→高)' : '中心 1升(低→高) 0降(高→低)';
+        ruleBadge.textContent = `本题约定：${rText}`;
+      }
+
+      renderQuizSVG();
+      renderQuizSlots();
+    }
+
+    function toggleQuizHint() {
+      state.quiz.showHint = !state.quiz.showHint;
+      renderQuizSVG();
+    }
+
+    function renderQuizSVG() {
+      const q = state.quiz;
+      const waveforms = computeWaveforms(q.bits, q.initLevel, q.diffRule, q.manRule);
+      const dataArr = q.encodingType === 'diff' ? waveforms.diffManchester : waveforms.manchester;
+
+      const leftMargin = 90;
+      const preInitWidth = 55;
+      const bitWidth = 82;
+      const startX = leftMargin + preInitWidth;
+      const totalWidth = startX + 8 * bitWidth + 25;
+      const height = 140;
+      const centerY = 78;
+      const amp = 32;
+      const yOf = (lvl) => centerY - lvl * amp;
+
+      let svg = `<svg width="100%" viewBox="0 0 ${totalWidth} ${height}">`;
+
+      // Initial reference box
+      svg += `
+        <rect x="${leftMargin}" y="15" width="${preInitWidth}" height="${height - 25}" rx="6" fill="#e2e8f0" opacity="0.5"/>
+        <text x="${leftMargin + preInitWidth/2}" y="34" text-anchor="middle" fill="#475569" font-size="11" font-weight="700">初始电平</text>
+      `;
+
+      // Grid lines
+      for (let i = 0; i < 8; i++) {
+        const colX = startX + i * bitWidth;
+        const midX = colX + bitWidth / 2;
+        svg += `
+          <text x="${midX}" y="28" text-anchor="middle" fill="#64748b" font-size="12" font-weight="700" class="mono">Bit #${i + 1}</text>
+          <line x1="${midX}" y1="38" x2="${midX}" y2="${height - 15}" stroke="#cbd5e1" stroke-width="1.2" stroke-dasharray="4,4"/>
+          <line x1="${colX}" y1="18" x2="${colX}" y2="${height - 15}" stroke="#94a3b8" stroke-width="1.5"/>
+        `;
+      }
+      const endX = startX + 8 * bitWidth;
+      svg += `<line x1="${endX}" y1="18" x2="${endX}" y2="${height - 15}" stroke="#94a3b8" stroke-width="1.5"/>`;
+      svg += `<line x1="${leftMargin}" y1="${centerY}" x2="${endX}" y2="${centerY}" stroke="#cbd5e1" stroke-width="1"/>`;
+
+      // Labels for High / Low
+      svg += `
+        <text x="${leftMargin - 12}" y="${centerY - amp + 4}" text-anchor="end" fill="#475569" font-size="12" font-weight="700">高 (High)</text>
+        <text x="${leftMargin - 12}" y="${centerY + amp + 4}" text-anchor="end" fill="#475569" font-size="12" font-weight="700">低 (Low)</text>
+      `;
+
+      // Waveform path
+      let pathD = '';
+      let prevY = null;
+      if (q.encodingType === 'diff') {
+        const initY = yOf(q.initLevel);
+        pathD += `M ${leftMargin + 8} ${initY} L ${startX} ${initY} `;
+        prevY = initY;
+      }
+
+      dataArr.forEach((seg, idx) => {
+        const colX = startX + idx * bitWidth;
+        const midX = colX + bitWidth / 2;
+        const nextX = colX + bitWidth;
+        const y1 = yOf(seg.first);
+        const y2 = yOf(seg.second);
+
+        if (idx === 0 && prevY === null) {
+          pathD += `M ${colX} ${y1} `;
+        } else if (prevY !== y1) {
+          pathD += `L ${colX} ${y1} `;
+        }
+        pathD += `L ${midX} ${y1} L ${midX} ${y2} L ${nextX} ${y2} `;
+        prevY = y2;
+      });
+
+      const strokeColor = q.encodingType === 'diff' ? '#e11d48' : '#4f46e5';
+      svg += `<path d="${pathD}" fill="none" stroke="${strokeColor}" stroke-width="3.5" stroke-linejoin="round" stroke-linecap="round"/>`;
+
+      // Optional Hints
+      if (q.showHint) {
+        dataArr.forEach((seg, idx) => {
+          const colX = startX + idx * bitWidth;
+          const midX = colX + bitWidth / 2;
+          if (q.encodingType === 'diff') {
+            const changed = seg.boundaryChanged;
+            const c = changed ? '#e11d48' : '#10b981';
+            svg += `
+              <circle cx="${colX}" cy="${changed ? centerY : yOf(seg.first)}" r="6" fill="${c}" stroke="#fff" stroke-width="1.5"/>
+              <text x="${colX + 14}" y="${centerY - amp - 6}" text-anchor="middle" fill="${c}" font-size="11" font-weight="700">${changed ? '变' : '不变'}</text>
+            `;
+          } else {
+            const dir = seg.first === 1 ? '↓降' : '↑升';
+            svg += `<text x="${midX + 14}" y="${centerY + 4}" fill="#4f46e5" font-size="12" font-weight="700">${dir}</text>`;
+          }
+        });
+      }
+
+      svg += `</svg>`;
+      document.getElementById('quiz-svg-container').innerHTML = svg;
+    }
+
+    function renderQuizSlots() {
+      const container = document.getElementById('quiz-answer-slots');
+      container.innerHTML = state.quiz.userBits.map((val, idx) => `
+        <button onclick="toggleQuizBit(${idx})" 
+          class="bit-btn flex flex-col items-center justify-center py-3 rounded-xl border-2 transition ${
+            val === 1 
+              ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm' 
+              : 'bg-white text-slate-800 border-slate-300 hover:border-indigo-400'
+          }">
+          <span class="text-[10px] opacity-65 font-semibold mb-0.5">Bit #${idx + 1}</span>
+          <span class="mono text-xl font-extrabold">${val}</span>
+        </button>
+      `).join('');
+    }
+
+    function toggleQuizBit(idx) {
+      state.quiz.userBits[idx] = state.quiz.userBits[idx] === 1 ? 0 : 1;
+      renderQuizSlots();
+    }
+
+    function checkQuizAnswer() {
+      const q = state.quiz;
+      const isAllCorrect = q.bits.every((b, i) => b === q.userBits[i]);
+      const feedbackEl = document.getElementById('quiz-feedback');
+      const expBox = document.getElementById('quiz-explanation-box');
+
+      if (isAllCorrect) {
+        q.streak++;
+        q.totalCorrect++;
+        feedbackEl.innerHTML = `<span class="text-emerald-600 font-bold">🎉 完全正确！太棒了，你已经彻底掌握了该编码的读图精髓！</span>`;
+      } else {
+        q.streak = 0;
+        feedbackEl.innerHTML = `<span class="text-rose-600 font-bold">❌ 有部分位判断失误，请查看下方逐位对照解析（已自动为你开启图形辅助标记）。</span>`;
+        q.showHint = true;
+        renderQuizSVG();
+      }
+
+      document.getElementById('quiz-score').textContent = `${q.streak} 连胜 / 共对 ${q.totalCorrect} 题`;
+
+      // Build detailed comparison breakdown
+      const detailsHtml = q.bits.map((ans, i) => {
+        const usr = q.userBits[i];
+        const ok = ans === usr;
+        return `
+          <div class="p-2 rounded-lg border ${ok ? 'bg-emerald-50 border-emerald-200 text-emerald-900' : 'bg-rose-50 border-rose-300 text-rose-900'} text-center">
+            <div class="text-[10px] opacity-75">第${i+1}位</div>
+            <div class="mono font-bold text-sm">标准: ${ans}</div>
+            <div class="mono text-xs ${ok ? 'text-emerald-600' : 'text-rose-600 font-bold'}">你的: ${usr} ${ok ? '✓' : '✗'}</div>
+          </div>
+        `;
+      }).join('');
+
+      expBox.innerHTML = `
+        <div class="font-bold text-slate-800 mb-2">📌 正确答案与逐位核对：<span class="mono text-indigo-600">${q.bits.join(' ')}</span></div>
+        <div class="grid grid-cols-4 sm:grid-cols-8 gap-2">${detailsHtml}</div>
+      `;
+      expBox.classList.remove('hidden');
+    }
+
+    // Master Update Function
+    function updateAll() {
+      renderBitPills();
+      renderWaveformsSVG();
+    }
+
+    // Initialize on load
+    window.addEventListener('DOMContentLoaded', () => {
+      updateAll();
+      generateQuizQuestion();
+    });
+  </script>
+</body>
+</html>
