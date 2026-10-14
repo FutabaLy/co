@@ -1,4 +1,4 @@
-# co
+# CO
 
 408 课程交互式可视化项目合集。采用与 [ds](https://github.com/FutabaLy/ds) 类似的「门户首页 + 独立实验子路径」结构，首个项目为计算机网络物理层数字编码实验室。
 
@@ -6,8 +6,8 @@
 
 ## 关联项目
 
-- [计算机网络 CN / network](https://futabaly.github.io/network/)：带宽、发送时延、传播时延、滑动窗口等教学可视化。[源码](https://github.com/FutabaLy/network)。
-- [数据结构 ds](https://futabaly.github.io/ds/)：排序、AVL 等可视化实验。
+- [CN](https://futabaly.github.io/cn/)：带宽、发送时延、传播时延、滑动窗口等教学可视化。[源码](https://github.com/FutabaLy/cn)。
+- [DS](https://futabaly.github.io/ds/)：排序、AVL 等可视化实验。
 
 ## 项目索引
 
